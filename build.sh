@@ -1,28 +1,65 @@
 #!/bin/bash
-doormat login && eval `doormat aws export --role $(doormat aws list | tail -n 1 | cut -b 2-)`
 
-. configAWS.sh
+# my mac takes 858 seconds, or 14.3 minutes to complete this script
+# if using PC, must authenticate seperately and remove below line before running
 
-EC2ID=$(aws ec2 run-instances \
-    --image-id $IMAGE_ID \
-    --instance-type t2.micro \
-    --key-name vault-mssql-kp \
-    --security-group-ids $SGID \
-    --iam-instance-profile Name=vaultEC2 \
-    --user-data file://bootstrap.sh \
-    --query "Instances[0].InstanceId" \
-    --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=vault-mssql-ec2}]' \
-    --no-paginate \
-    --output text)
+# Asking if using a PC
+read -p "Is this shell operating in a Unix-based OS? (yes/no): " answer
 
-DNS=$(aws ec2 describe-instances \
-    --instance-ids $EC2ID \
-    --query 'Reservations[0].Instances[0].PublicDnsName' \
-    --output text)
+# Converting to lowercase
+answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
 
-echo "EC2 instance ready, but RDS will need an additional 10 minutes."
-echo "ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$DNS"
-echo "once logged in, run 'sql-get-users' to see the users and their logins in the COOLDB database."
-echo "can also run custom queries using the built-in alias 'sql' like so: "
-echo 'sql "SELECT name FROM sys.databases;"'
-echo "Run cleanup.sh to delete all resources created by this script."
+OS=true
+
+# Check if the answer is "yes" and run the script if true
+if [[ "$answer" == "yes" || "$answer" == "y" ]]; then
+	echo "Relax while infra is created."
+	doormat login && eval $(doormat aws export --role $(doormat aws list | tail -n 1 | cut -b 2-))
+
+	echo "creating a Vault single-server EC2 instance"
+	. configAWS.sh
+	. bootstrapInstance.sh $SGID
+
+	echo "done creating EC2 instance, security group, and key pair"
+
+	echo "starting creation of MSSQL RDS instance"
+	. bootstrapRDS.sh $EC2ID $SGID
+
+	echo "done creating RDS instance"
+
+	echo "configuring DB from within EC2"
+	. configDB.sh $RDSEP $OS $DNS
+
+	echo "configuring MSSQL secrets engine in Vault EC2"
+	. configEngine.sh $RDSEP $DNS
+
+	echo "RDS EP: "$RDSEP
+	echo "EC2 DNS" $DNS
+	echo "ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$DNS"
+
+	echo "Environment ready! You can now run sql queries from ec2 using alias 'sql', like so: "
+	echo 'sql "SELECT name FROM sys.databases"'
+
+else
+	OS=false
+	if ! doormat login -v 2>/dev/null; then
+		echo
+		echo "Please authenticate to doormat CLI and re-run this script."
+		exit 1
+	fi
+
+	echo "For Windows machine, user must manually run configDBwindows.sh from inside EC2"
+	echo "using RDS endpoint output after rds creation"
+
+	. configAWS.sh
+
+	. bootstrapInstance.sh $SGID
+
+	. bootstrapRDS.sh $EC2ID $SGID
+
+
+	echo "Everything complete except DB config! User must now run "
+	echo "configDBwindows.sh inside the now ready EC2 instance."
+	echo "Script uses RDS endpoint as arguement.  Here is the command: "
+	echo "sudo chmod +x configDB.sh; ./configDB.sh $RDSEP $OS"
+fi

@@ -19,20 +19,14 @@ rm -f key.pem keys root unseal
 
 # deleting IAM stuff
 aws iam detach-role-policy \
-    --role-name ec2-mssql \
+    --role-name describeInstance \
     --policy-arn arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
-
-RDSARN=$(aws iam list-policies --query 'Policies[?PolicyName==`RDS-policy`].Arn' --output text)
-
-aws iam detach-role-policy --role-name ec2-mssql --policy-arn "$RDSARN"
-
-aws iam delete-policy --policy-arn "$RDSARN"
 
 aws iam remove-role-from-instance-profile \
     --instance-profile-name vaultEC2 \
-    --role-name ec2-mssql
+    --role-name describeInstance
 
-aws iam delete-role --role-name ec2-mssql
+aws iam delete-role --role-name describeInstance
 
 aws iam delete-instance-profile --instance-profile-name vaultEC2
 
