@@ -66,7 +66,6 @@ sleep 10
 aws iam add-role-to-instance-profile --role-name ec2-mssql --instance-profile-name vaultEC2
 
 VPCID=$(aws ec2 describe-vpcs \
-    --filters "Name=isDefault,Values=true" \
     --query "Vpcs[0].VpcId" \
     --output text)
 
