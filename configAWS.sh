@@ -69,6 +69,26 @@ VPCID=$(aws ec2 describe-vpcs \
     --query "Vpcs[0].VpcId" \
     --output text)
 
+AZ=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPCID" --query 'Subnets[0].[AvailabilityZone]' --output text)
+
+region=${AZ%?}
+
+# Get VPC CIDR block
+cidr_block=$(aws ec2 describe-vpcs --vpc-ids $VPCID --query 'Vpcs[0].CidrBlock' --output text)
+
+# Extract the first 5 digits
+cidr="${cidr_block:0:6}"
+
+# Create the first subnet
+first_subnet_cidr_block=$(echo $cidr | cut -c 1-6).255.208/28
+first_subnet_az=$region"a"
+aws ec2 create-subnet --vpc-id $VPCID --availability-zone $first_subnet_az --cidr-block $first_subnet_cidr_block
+
+# Create the second subnet
+second_subnet_cidr_block=$(echo $cidr | cut -c 1-6).254.208/28
+second_subnet_az=$region"b"
+aws ec2 create-subnet --vpc-id $VPCID --availability-zone $second_subnet_az --cidr-block $second_subnet_cidr_block
+
 SGID=$(aws ec2 create-security-group \
     --group-name vault-mssql-sg \
     --description "allows traffic vault from-to  mssql" \

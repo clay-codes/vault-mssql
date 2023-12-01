@@ -70,6 +70,7 @@ function bootstrapRDS {
         --vpc-security-group-ids $SGID \
         --availability-zone $AZ \
         --backup-retention-period 0 \
+        --no-multi-az \
         --no-publicly-accessible \
         --no-paginate
 
