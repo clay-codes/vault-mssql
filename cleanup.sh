@@ -60,3 +60,4 @@ subnet_2_id=$(aws ec2 describe-subnets --filters "Name=cidr-block,Values=172.31.
 
 aws ec2 delete-subnet --subnet-id $subnet_1_id
 aws ec2 delete-subnet --subnet-id $subnet_2_id
+aws rds delete-db-subnet-group --db-subnet-group-name vault-mssql-subnet-group

@@ -39,26 +39,26 @@ RDS_POLICY='{
 
 # Create the IAM policy
 RDSARN=$(aws iam create-policy \
-  --policy-name RDS-policy \
-  --policy-document "$RDS_POLICY" \
-  --query 'Policy.Arn' \
-  --output text)
+    --policy-name RDS-policy \
+    --policy-document "$RDS_POLICY" \
+    --query 'Policy.Arn' \
+    --output text)
 
 # create role using this policy
 aws iam create-role \
     --role-name ec2-mssql \
-    --assume-role-policy-document "$TRUST_POLICY" > /dev/null
+    --assume-role-policy-document "$TRUST_POLICY" >/dev/null
 # Attach the AmazonEC2ReadOnlyAccess policy to the IAM role
 aws iam attach-role-policy \
     --policy-arn arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess \
-    --role-name ec2-mssql > /dev/null
+    --role-name ec2-mssql >/dev/null
 
 aws iam attach-role-policy \
     --policy-arn "$RDSARN" \
     --role-name ec2-mssql >/dev/null
 
 # Create an IAM instance profile and associate it with the IAM role
-aws iam create-instance-profile --instance-profile-name vaultEC2 > /dev/null
+aws iam create-instance-profile --instance-profile-name vaultEC2 >/dev/null
 
 sleep 10
 
@@ -80,14 +80,30 @@ cidr_block=$(aws ec2 describe-vpcs --vpc-ids $VPCID --query 'Vpcs[0].CidrBlock' 
 cidr="${cidr_block:0:6}"
 
 # Create the first subnet
-first_subnet_cidr_block=$(echo $cidr | cut -c 1-6).255.208/28
-first_subnet_az=$region"a"
-aws ec2 create-subnet --vpc-id $VPCID --availability-zone $first_subnet_az --cidr-block $first_subnet_cidr_block
+SNCB1=$(echo $cidr | cut -c 1-6).255.208/28
+SNAZ1=$region"a"
+SNID1=$(aws ec2 create-subnet \
+    --vpc-id $VPCID \
+    --availability-zone $SNAZ1 \
+    --cidr-block $SNCB1 \
+    --query 'Subnet.SubnetId' \
+    --output text)
 
 # Create the second subnet
-second_subnet_cidr_block=$(echo $cidr | cut -c 1-6).254.208/28
-second_subnet_az=$region"b"
-aws ec2 create-subnet --vpc-id $VPCID --availability-zone $second_subnet_az --cidr-block $second_subnet_cidr_block
+SNCB2=$(echo $cidr | cut -c 1-6).254.208/28
+SNAZ2=$region"b"
+SNID2=$(aws ec2 create-subnet \
+    --vpc-id $VPCID \
+    --availability-zone $SNAZ2 \
+    --cidr-block $SNCB2 \
+    --query 'Subnet.SubnetId' \
+    --output text)
+
+# Create the DB subnet group
+aws rds create-db-subnet-group \
+    --db-subnet-group-name vault-mssql-sng \
+    --db-subnet-group-description "2 subnets for vault-mssql" \
+    --subnet-ids "[\"$SNID1\",\"$SNID2\"]" >/dev/null
 
 SGID=$(aws ec2 create-security-group \
     --group-name vault-mssql-sg \
@@ -102,25 +118,25 @@ aws ec2 authorize-security-group-ingress \
     --group-id $SGID \
     --protocol tcp \
     --port 1433 \
-    --cidr 0.0.0.0/0 > /dev/null
+    --cidr 0.0.0.0/0 >/dev/null
 
 # allow all outgoing traffic on port 1433
 aws ec2 authorize-security-group-egress \
     --group-id $SGID --protocol tcp \
     --port 1433 \
-    --cidr 0.0.0.0/0 > /dev/null
+    --cidr 0.0.0.0/0 >/dev/null
 
 aws ec2 authorize-security-group-ingress \
     --group-id $SGID \
     --protocol tcp \
     --port 22 \
-    --cidr 0.0.0.0/0 > /dev/null
+    --cidr 0.0.0.0/0 >/dev/null
 
 aws ec2 authorize-security-group-ingress \
     --group-id $SGID \
     --protocol tcp \
     --port 8200 \
-    --cidr 0.0.0.0/0 > /dev/null
+    --cidr 0.0.0.0/0 >/dev/null
 
 aws ec2 create-key-pair \
     --key-name vault-mssql-kp \

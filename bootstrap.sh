@@ -69,6 +69,7 @@ function bootstrapRDS {
         --master-user-password vault123 \
         --vpc-security-group-ids $SGID \
         --availability-zone $AZ \
+        --db-subnet-group-name vault-mssql-sng \
         --backup-retention-period 0 \
         --no-multi-az \
         --no-publicly-accessible \
