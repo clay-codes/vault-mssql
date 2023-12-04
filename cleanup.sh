@@ -55,9 +55,7 @@ echo "DB instance has been deleted."
 aws ec2 delete-security-group --group-name vault-mssql-sg
 
 # deleting subnets by their cidr block
-subnet_1_id=$(aws ec2 describe-subnets --filters "Name=cidr-block,Values=172.31.255.208/28" --query 'Subnets[0].SubnetId' --output text)
-subnet_2_id=$(aws ec2 describe-subnets --filters "Name=cidr-block,Values=172.31.254.208/28" --query 'Subnets[0].SubnetId' --output text)
+subnet_id=$(aws ec2 describe-subnets --filters "Name=cidr-block,Values=172.31.255.208/28" --query 'Subnets[0].SubnetId' --output text)
 
-aws ec2 delete-subnet --subnet-id $subnet_1_id
-aws ec2 delete-subnet --subnet-id $subnet_2_id
+aws ec2 delete-subnet --subnet-id $subnet_id
 aws rds delete-db-subnet-group --db-subnet-group-name vault-mssql-sng
