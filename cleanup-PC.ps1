@@ -62,3 +62,14 @@ do {
 
 # Delete security group (must be after DB and EC2 deletion due to dependency)
 aws ec2 delete-security-group --group-name vault-mssql-sg
+
+# Deleting subnets by their CIDR block
+$subnet1Id = aws ec2 describe-subnets --filters "Name=cidr-block,Values=172.31.255.208/28" --query 'Subnets[0].SubnetId' --output text
+$subnet2Id = aws ec2 describe-subnets --filters "Name=cidr-block,Values=172.31.254.208/28" --query 'Subnets[0].SubnetId' --output text
+
+aws ec2 delete-subnet --subnet-id $subnet1Id
+aws ec2 delete-subnet --subnet-id $subnet2Id
+
+# Delete the DB subnet group
+aws rds delete-db-subnet-group --db-subnet-group-name vault-mssql-sng
+
