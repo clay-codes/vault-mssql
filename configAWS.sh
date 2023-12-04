@@ -70,8 +70,11 @@ VPCID=$(aws ec2 describe-vpcs \
     --output text)
 
 AZ=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPCID" --query 'Subnets[0].[AvailabilityZone]' --output text)
-
 region=${AZ%?}
+
+AZCH="${AZ: -1}"
+# if last char is a, set char to b, else set char to a
+[ "$AZCH" == "a" ] && char="b" || char="a"
 
 # Get VPC CIDR block
 cidr_block=$(aws ec2 describe-vpcs --vpc-ids $VPCID --query 'Vpcs[0].CidrBlock' --output text)
@@ -79,23 +82,14 @@ cidr_block=$(aws ec2 describe-vpcs --vpc-ids $VPCID --query 'Vpcs[0].CidrBlock' 
 # Extract the first 5 digits
 cidr="${cidr_block:0:6}"
 
-# Create the first subnet
-SNCB1=$(echo $cidr | cut -c 1-6).255.208/28
-SNAZ1=$region"a"
-SNID1=$(aws ec2 create-subnet \
-    --vpc-id $VPCID \
-    --availability-zone $SNAZ1 \
-    --cidr-block $SNCB1 \
-    --query 'Subnet.SubnetId' \
-    --output text)
-
+SNID1=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPCID" --query "Subnets[].SubnetId" --output text)
 # Create the second subnet
-SNCB2=$(echo $cidr | cut -c 1-6).254.208/28
-SNAZ2=$region"b"
+SNCIDR=$(echo $cidr | cut -c 1-6).255.208/28
+SNAZ=$region$char
 SNID2=$(aws ec2 create-subnet \
     --vpc-id $VPCID \
-    --availability-zone $SNAZ2 \
-    --cidr-block $SNCB2 \
+    --availability-zone $SNAZ \
+    --cidr-block $SNCIDR \
     --query 'Subnet.SubnetId' \
     --output text)
 
