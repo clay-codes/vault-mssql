@@ -82,7 +82,7 @@ cidr_block=$(aws ec2 describe-vpcs --vpc-ids $VPCID --query 'Vpcs[0].CidrBlock' 
 # Extract the first 5 digits
 cidr="${cidr_block:0:6}"
 
-SNID1=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPCID" --query "Subnets[].SubnetId" --output text)
+SNID1=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPCID" --query "Subnets[0].SubnetId" --output text)
 # Create the second subnet
 SNCIDR=$(echo $cidr | cut -c 1-6).255.208/28
 SNAZ=$region$char

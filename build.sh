@@ -8,6 +8,7 @@ EC2ID=$(aws ec2 run-instances \
     --instance-type t2.micro \
     --key-name vault-mssql-kp \
     --security-group-ids $SGID \
+    --subnet-id $SNID1 \
     --iam-instance-profile Name=vaultEC2 \
     --user-data file://bootstrap.sh \
     --query "Instances[0].InstanceId" \
