@@ -58,19 +58,21 @@ $VPCID = aws ec2 describe-vpcs --query "Vpcs[0].VpcId" --output text
 $AZ = aws ec2 describe-availability-zones --query 'AvailabilityZones[0].ZoneName' --output text
 $region = $AZ.Substring(0, $AZ.Length - 1)
 
+$AZCH = $AZ[-1]  # Gets the last character of the string
+
+# Short-circuit syntax if $AZCH is 'a', set $char to 'b', otherwise set $char to 'a'
+$char = ($AZCH -eq 'a') ? 'b' : 'a'
+
+
 # Get VPC CIDR block
 $cidr_block = aws ec2 describe-vpcs --vpc-ids $VPCID --query 'Vpcs[0].CidrBlock' --output text
 $cidr = $cidr_block.Substring(0, 6)
 
-# Create the first subnet
-$SNCB1 = "$($cidr).255.208/28"
-$SNAZ1 = $region + "a"
-$SNID1 = aws ec2 create-subnet --vpc-id $VPCID --availability-zone $SNAZ1 --cidr-block $SNCB1 --query 'Subnet.SubnetId' --output text
-
-# Create the second subnet
-$SNCB2 = "$($cidr).254.208/28"
-$SNAZ2 = $region + "b"
-$SNID2 = aws ec2 create-subnet --vpc-id $VPCID --availability-zone $SNAZ2 --cidr-block $SNCB2 --query 'Subnet.SubnetId' --output text
+# Create the subnet
+$SNID1 = aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPCID" --query "Subnets[0].SubnetId" --output text
+$SNCB = "$($cidr).255.208/28"
+$SNAZ = $region + $char
+$SNID2 = aws ec2 create-subnet --vpc-id $VPCID --availability-zone $SNAZ --cidr-block $SNCB --query 'Subnet.SubnetId' --output text
 
 # Create the DB subnet group
 aws rds create-db-subnet-group --db-subnet-group-name vault-mssql-sng --db-subnet-group-description "2 subnets for vault-mssql" --subnet-ids "[\"$SNID1\",\"$SNID2\"]" | Out-Null
