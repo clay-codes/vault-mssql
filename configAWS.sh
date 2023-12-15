@@ -65,9 +65,9 @@ sleep 10
 # Associate the IAM role with the IAM instance profile
 aws iam add-role-to-instance-profile --role-name ec2-mssql --instance-profile-name vaultEC2
 
-VPCID=$(aws ec2 describe-vpcs \
-    --query "Vpcs[0].VpcId" \
-    --output text)
+VPCID=$(aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query 'Vpcs[].VpcId' --output text)
+
+[ -z "$VPCID" ] && echo "No default VPC found.  Must have default vpc and associated subnet with network connection to run" && exit 1
 
 AZ=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPCID" --query 'Subnets[0].[AvailabilityZone]' --output text)
 region=${AZ%?}
@@ -80,16 +80,17 @@ AZCH="${AZ: -1}"
 cidr_block=$(aws ec2 describe-vpcs --vpc-ids $VPCID --query 'Vpcs[0].CidrBlock' --output text)
 
 # Extract the first 5 digits
-cidr="${cidr_block:0:6}"
+cidr=$(echo $cidr_block | awk -F. '{print $1"."$2"."$3}')
 
 SNID1=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPCID" --query "Subnets[0].SubnetId" --output text)
 # Create the second subnet
-SNCIDR=$(echo $cidr | cut -c 1-6).255.208/28
+SNCIDR="$cidr.240/28"
 SNAZ=$region$char
 SNID2=$(aws ec2 create-subnet \
     --vpc-id $VPCID \
     --availability-zone $SNAZ \
     --cidr-block $SNCIDR \
+    --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=vault-mssql-sn}]" \
     --query 'Subnet.SubnetId' \
     --output text)
 

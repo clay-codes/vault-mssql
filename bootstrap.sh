@@ -19,8 +19,7 @@ function install_deps {
 function init_vault {
     mkdir -p /mnt/vault/data
     chown -R vault /mnt/vault
-    echo "PASTE_LICENSE_HERE" >/etc/vault.d/vault.hclic
-
+    echo "" >/etc/vault.d/vault.hclic
     cat <<EOF1 >/etc/vault.d/vault.hcl
 storage "file" {
   path    = "/mnt/vault/data"

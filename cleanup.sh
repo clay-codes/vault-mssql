@@ -54,8 +54,9 @@ echo "DB instance has been deleted."
 # delete security group (must be after db and ec2 deletion due to dependancy)
 aws ec2 delete-security-group --group-name vault-mssql-sg
 
-# deleting subnets by their cidr block
-subnet_id=$(aws ec2 describe-subnets --filters "Name=cidr-block,Values=172.31.255.208/28" --query 'Subnets[0].SubnetId' --output text)
+# deleting subnets by their names
 
+subnet_id=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=vault-mssql-sn" --query 'Subnets[0].SubnetId' --output text)
 aws ec2 delete-subnet --subnet-id $subnet_id
+
 aws rds delete-db-subnet-group --db-subnet-group-name vault-mssql-sng

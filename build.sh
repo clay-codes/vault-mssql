@@ -22,8 +22,11 @@ DNS=$(aws ec2 describe-instances \
     --output text)
 
 echo "EC2 instance ready, but RDS will need an additional 10 minutes."
+echo "Run the following ssh command to connect to the EC2 instance:"
 echo "ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$DNS"
-echo "once logged in, run 'sql-get-users' to see the users and their logins in the COOLDB database."
+echo ""
+echo "Once logged in, run 'sql-get-users' to see the users and their logins in the COOLDB database."
 echo "can also run custom queries using the built-in alias 'sql' like so: "
 echo 'sql "SELECT name FROM sys.databases;"'
-echo "Run cleanup.sh to delete all resources created by this script."
+echo "Run vault read database/roles/cooldb to see the role created by the bootstrap script."
+echo "Once finished, run cleanup.sh from local machine to delete all resources created by this script."
